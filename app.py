@@ -1,72 +1,105 @@
-import pandas as pd 
+import pandas as pd
 import plotly.express as px
-import streamlit as st   
+import streamlit as st
 from sklearn.impute import SimpleImputer
 import numpy as np
 from scipy import stats
 
-st.set_page_config(
-    page_title='EDA Portal',
-    page_icon='📊'
-)
+st.set_page_config(page_title='EDA Portal', page_icon='📊')
+
+# Welcome Text and Instructions
+st.title('Welcome to the EDA Portal! 🌟')
+st.write("""
+    Explore our powerful EDA (Exploratory Data Analysis) tool to gain insights from your data. 
+    Here’s what you can do:
+    
+    1. **Upload Your Data**: Start by uploading a CSV or Excel file to begin analyzing your data.
+    2. **View and Summarize**: Get a summary of your dataset, including basic statistics, data types, and a list of columns.
+    3. **Handle Missing Values**: Identify and handle missing values with various imputation methods.
+    4. **Detect Outliers**: Use Z-Score or IQR methods to detect and handle outliers in your data.
+    5. **Visualize Data**: Create various charts and graphs to visualize your data and reveal trends.
+    6. **Group and Aggregate**: Group data by columns and perform aggregation operations for deeper insights.
+    7. **Download Updated Data**: After making changes, download the updated dataset for further use.
+
+    Feel free to upload your own dataset or explore our default dataset to get a feel for our tool!
+""")
 
 st.title(':rainbow[Your GoTo EDA Portal]')
 st.subheader(':gray[Explore Data with ease.]', divider='rainbow')
 
-file = st.file_uploader('Drop csv or excel file', type=['csv', 'xlsx'])
-if file:
-    if file.name.endswith('csv'):
-        data = pd.read_csv(file)
-    else:
-        data = pd.read_excel(file)
-    st.dataframe(data)
-    st.info('We are ready to work on your data', icon='⚒️')
+# Define a default dataset (example data)
+DEFAULT_DATA = pd.DataFrame({
+    'Category': ['A', 'B', 'A', 'C', 'B', 'A', 'C'],
+    'Value': [10, 20, 10, 30, 20, 10, 30]
+})
 
-    st.subheader(':rainbow[Basic information of the dataset]', divider='rainbow')
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(['Summary', 'Top and Bottom Rows', 'Data Types', 'Columns', 'Descriptive Statistics'])
-
-    with tab1:
-        st.write(f'There are {data.shape[0]} rows in dataset and  {data.shape[1]} columns in the dataset')
-        st.subheader(':gray[Statistical summary of the dataset]')
-        st.dataframe(data.describe())
-    with tab2:
-        st.subheader(':gray[Top Rows]')
-        toprows = st.slider('Number of rows you want', 1, data.shape[0], key='topslider')
-        st.dataframe(data.head(toprows))
-        st.subheader(':gray[Bottom Rows]')
-        bottomrows = st.slider('Number of rows you want', 1, data.shape[0], key='bottomslider')
-        st.dataframe(data.tail(bottomrows))
-    with tab3:
-        st.subheader(':grey[Data types of column]')
-        st.dataframe(data.dtypes)
-    with tab4:
-        st.subheader('Column Names in Dataset')
-        st.write(list(data.columns))
-    with tab5:
-        st.subheader(':gray[Descriptive Statistics]')
-        
-        # Function to calculate descriptive statistics
-        def descriptive_statistics(df):
-            stats_df = pd.DataFrame()
-            stats_df['mean'] = df.mean()
-            stats_df['std_dev'] = df.std()
-            stats_df['min'] = df.min()
-            stats_df['25%'] = df.quantile(0.25)
-            stats_df['median'] = df.median()
-            stats_df['75%'] = df.quantile(0.75)
-            stats_df['max'] = df.max()
-            stats_df['variance'] = df.var()
-            stats_df['skewness'] = df.skew()
-            stats_df['kurtosis'] = df.kurtosis()
-            return stats_df
-
-        # Calculate descriptive statistics for numeric columns
-        numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
-        if numeric_columns.empty:
-            st.write("No numeric columns available for descriptive statistics.")
+# Function to load data
+def load_data(file):
+    if file is not None:
+        if file.name.endswith('csv'):
+            return pd.read_csv(file)
         else:
-            stats_df = descriptive_statistics(data[numeric_columns])
-            st.dataframe(stats_df)
+            return pd.read_excel(file)
+    return None
+
+# Create a placeholder for the uploaded data
+file = st.file_uploader('Drop csv or excel file', type=['csv', 'xlsx'])
+data = load_data(file)
+
+# Use default data if no file is uploaded
+if data is None:
+    data = DEFAULT_DATA
+    st.info('Showing default data. Upload your own data to replace this.')
+
+st.dataframe(data)
+
+# Rest of your code...
+
+st.subheader(':rainbow[Basic information of the dataset]', divider='rainbow')
+tab1, tab2, tab3, tab4, tab5 = st.tabs(['Summary', 'Top and Bottom Rows', 'Data Types', 'Columns', 'Descriptive Statistics'])
+
+with tab1:
+    st.write(f'There are {data.shape[0]} rows in dataset and  {data.shape[1]} columns in the dataset')
+    st.subheader(':gray[Statistical summary of the dataset]')
+    st.dataframe(data.describe())
+with tab2:
+    st.subheader(':gray[Top Rows]')
+    toprows = st.slider('Number of rows you want', 1, data.shape[0], key='topslider')
+    st.dataframe(data.head(toprows))
+    st.subheader(':gray[Bottom Rows]')
+    bottomrows = st.slider('Number of rows you want', 1, data.shape[0], key='bottomslider')
+    st.dataframe(data.tail(bottomrows))
+with tab3:
+    st.subheader(':grey[Data types of column]')
+    st.dataframe(data.dtypes)
+with tab4:
+    st.subheader('Column Names in Dataset')
+    st.write(list(data.columns))
+with tab5:
+    st.subheader(':gray[Descriptive Statistics]')
+    
+    # Function to calculate descriptive statistics
+    def descriptive_statistics(df):
+        stats_df = pd.DataFrame()
+        stats_df['mean'] = df.mean()
+        stats_df['std_dev'] = df.std()
+        stats_df['min'] = df.min()
+        stats_df['25%'] = df.quantile(0.25)
+        stats_df['median'] = df.median()
+        stats_df['75%'] = df.quantile(0.75)
+        stats_df['max'] = df.max()
+        stats_df['variance'] = df.var()
+        stats_df['skewness'] = df.skew()
+        stats_df['kurtosis'] = df.kurtosis()
+        return stats_df
+
+    # Calculate descriptive statistics for numeric columns
+    numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
+    if numeric_columns.empty:
+        st.write("No numeric columns available for descriptive statistics.")
+    else:
+        stats_df = descriptive_statistics(data[numeric_columns])
+        st.dataframe(stats_df)
 
    
 
@@ -312,29 +345,3 @@ with st.expander('Group By your columns'):
 
 
 
-# Descriptive Statistics Section
-st.subheader(':rainbow[Descriptive Statistics]', divider='rainbow')
-
-# Descriptive Statistics Function
-def descriptive_statistics(df):
-    stats_df = pd.DataFrame()
-    stats_df['mean'] = df.mean()
-    stats_df['std_dev'] = df.std()
-    stats_df['min'] = df.min()
-    stats_df['25%'] = df.quantile(0.25)
-    stats_df['median'] = df.median()
-    stats_df['75%'] = df.quantile(0.75)
-    stats_df['max'] = df.max()
-    stats_df['variance'] = df.var()
-    stats_df['skewness'] = df.skew()
-    stats_df['kurtosis'] = df.kurtosis()
-    return stats_df
-
-# Calculate descriptive statistics for numeric columns
-numeric_columns = st.session_state.temp_data.select_dtypes(include=['float64', 'int64']).columns
-if numeric_columns.empty:
-    st.write("No numeric columns available for descriptive statistics.")
-else:
-    stats_df = descriptive_statistics(st.session_state.temp_data[numeric_columns])
-    st.write("Descriptive statistics for numeric columns:")
-    st.dataframe(stats_df)
