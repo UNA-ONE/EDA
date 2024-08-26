@@ -104,145 +104,147 @@ with tab5:
    
 st.subheader(':rainbow[Handle Missing Values]', divider='rainbow')
 
-    # Create a temporary DataFrame to store the modified data
-if 'temp_data' not in st.session_state:
-        st.session_state.temp_data = data.copy()
+# Initialize temp_data in session state if not already present
+if 'temp_data' not in st.session_state or file:
+    st.session_state.temp_data = data.copy()
 
-    # Calculate missing values
+# Calculate missing values
 def calculate_missing_values(df):
-        missing_data = df.isnull().sum().reset_index()
-        missing_data.columns = ['Column', 'Missing Values']
-        return missing_data[missing_data['Missing Values'] > 0]
+    missing_data = df.isnull().sum().reset_index()
+    missing_data.columns = ['Column', 'Missing Values']
+    return missing_data[missing_data['Missing Values'] > 0]
 
 missing_data = calculate_missing_values(st.session_state.temp_data)
 
 if missing_data.empty:
-        st.write("No missing values found in the dataset.")
+    st.write("No missing values found in the dataset.")
 else:
-        st.write("Missing values detected in the following columns:")
-        st.dataframe(missing_data)
+    st.write("Missing values detected in the following columns:")
+    st.dataframe(missing_data)
 
-        recommendations = []
-        for column in missing_data['Column']:
-            if st.session_state.temp_data[column].dtype in ['float64', 'int64']:
-                recommendations.append(f"💡 The column '{column}' contains numerical data. Imputing with the mean might be the best option.")
-            elif st.session_state.temp_data[column].dtype == 'object':
-                recommendations.append(f"💡 The column '{column}' contains categorical data. Imputing with the most frequent value might be the best option.")
-        
-        for recommendation in recommendations:
-            st.write(recommendation)
+    recommendations = []
+    for column in missing_data['Column']:
+        if st.session_state.temp_data[column].dtype in ['float64', 'int64']:
+            recommendations.append(f"💡 The column '{column}' contains numerical data. Imputing with the mean might be the best option.")
+        elif st.session_state.temp_data[column].dtype == 'object':
+            recommendations.append(f"💡 The column '{column}' contains categorical data. Imputing with the most frequent value might be the best option.")
 
-        with st.expander('Missing Value Imputation'):
-            col1, col2, col3 = st.columns(3)
+    for recommendation in recommendations:
+        st.write(recommendation)
 
-            with col1:
-                column = st.selectbox('Select Column', options=missing_data['Column'], key='impute_column', help='Select the column to impute missing values for.')
+    with st.expander('Missing Value Imputation'):
+        col1, col2, col3 = st.columns(3)
 
-            with col2:
-                method = st.selectbox('Select Imputation Method',
-                                      options=['Mean', 'Median', 'Most Frequent', 'Constant'],
-                                      key='impute_method',
-                                      help='Choose the method to impute missing values.')
+        with col1:
+            column = st.selectbox('Select Column', options=missing_data['Column'], key='impute_column', help='Select the column to impute missing values for.')
 
-            with col3:
-                if method == 'Constant':
-                    fill_value = st.text_input('Value for Constant Imputation', key='constant_value', help='Specify the constant value for imputation.')
+        with col2:
+            method = st.selectbox('Select Imputation Method',
+                                  options=['Mean', 'Median', 'Most Frequent', 'Constant'],
+                                  key='impute_method',
+                                  help='Choose the method to impute missing values.')
+
+        with col3:
+            if method == 'Constant':
+                fill_value = st.text_input('Value for Constant Imputation', key='constant_value', help='Specify the constant value for imputation.')
+            else:
+                fill_value = None
+
+        impute = st.button('Impute', key='impute_button')
+
+        if impute:
+            imputer = None
+            if method == 'Mean':
+                imputer = SimpleImputer(strategy='mean')
+            elif method == 'Median':
+                imputer = SimpleImputer(strategy='median')
+            elif method == 'Most Frequent':
+                imputer = SimpleImputer(strategy='most_frequent')
+            elif method == 'Constant' and fill_value is not None:
+                imputer = SimpleImputer(strategy='constant', fill_value=fill_value)
+
+            if imputer:
+                st.session_state.temp_data[[column]] = imputer.fit_transform(st.session_state.temp_data[[column]])
+                st.success(f'Missing values in column "{column}" have been imputed using the {method} method.')
+
+                # Show top 7 rows where data was imputed
+                st.subheader("Top 7 Rows After Imputation")
+                imputed_data = st.session_state.temp_data.head(7)
+                st.dataframe(imputed_data)
+
+                # Recalculate missing values after imputation
+                missing_data = calculate_missing_values(st.session_state.temp_data)
+
+                if missing_data.empty:
+                    st.write("All missing values have been imputed.")
                 else:
-                    fill_value = None
+                    st.write("Remaining missing values:")
+                    st.dataframe(missing_data)
 
-            impute = st.button('Impute', key='impute_button')
+                # Offer to download the updated data if all columns have been handled
+                if missing_data.empty:
+                    csv = st.session_state.temp_data.to_csv(index=False).encode('utf-8')
+                    st.download_button(
+                        label="Download Updated Data",
+                        data=csv,
+                        file_name='updated_data.csv',
+                        mime='text/csv'
+                    )
 
-            if impute:
-                imputer = None
-                if method == 'Mean':
-                    imputer = SimpleImputer(strategy='mean')
-                elif method == 'Median':
-                    imputer = SimpleImputer(strategy='median')
-                elif method == 'Most Frequent':
-                    imputer = SimpleImputer(strategy='most_frequent')
-                elif method == 'Constant' and fill_value is not None:
-                    imputer = SimpleImputer(strategy='constant', fill_value=fill_value)
-
-                if imputer:
-                    st.session_state.temp_data[[column]] = imputer.fit_transform(st.session_state.temp_data[[column]])
-                    st.success(f'Missing values in column "{column}" have been imputed using the {method} method.')
-                    
-                    # Show top 7 rows where data was imputed
-                    st.subheader("Top 7 Rows After Imputation")
-                    imputed_data = st.session_state.temp_data.head(7)
-                    st.dataframe(imputed_data)
-
-                    # Recalculate missing values after imputation
-                    missing_data = calculate_missing_values(st.session_state.temp_data)
-                    
-                    if missing_data.empty:
-                        st.write("All missing values have been imputed.")
-                    else:
-                        st.write("Remaining missing values:")
-                        st.dataframe(missing_data)
-
-                    # Offer to download the updated data if all columns have been handled
-                    if missing_data.empty:
-                        csv = st.session_state.temp_data.to_csv(index=False).encode('utf-8')
-                        st.download_button(
-                            label="Download Updated Data",
-                            data=csv,
-                            file_name='updated_data.csv',
-                            mime='text/csv'
-                        )
 
     # Outlier Detection Section
 st.subheader(':rainbow[Outlier Detection]', divider='rainbow')
 
 def detect_outliers_zscore(df, column):
-        z_scores = np.abs(stats.zscore(df[column].dropna()))
-        return df[z_scores > 3]
+    z_scores = np.abs(stats.zscore(df[column].dropna()))
+    return df[z_scores > 3]
 
 def detect_outliers_iqr(df, column):
-        Q1 = df[column].quantile(0.25)
-        Q3 = df[column].quantile(0.75)
-        IQR = Q3 - Q1
-        return df[(df[column] < (Q1 - 1.5 * IQR)) | (df[column] > (Q3 + 1.5 * IQR))]
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    return df[(df[column] < (Q1 - 1.5 * IQR)) | (df[column] > (Q3 + 1.5 * IQR))]
 
 def detect_and_display_outliers():
-        numeric_columns = st.session_state.temp_data.select_dtypes(include=['float64', 'int64']).columns
-        if numeric_columns.empty:
-            st.write("No numeric columns available for outlier detection.")
-        else:
-            column = st.selectbox('Select Numeric Column for Outlier Detection', options=numeric_columns, key='outlier_detection_column')
+    numeric_columns = st.session_state.temp_data.select_dtypes(include=['float64', 'int64']).columns
+    if numeric_columns.empty:
+        st.write("No numeric columns available for outlier detection.")
+    else:
+        column = st.selectbox('Select Numeric Column for Outlier Detection', options=numeric_columns, key='outlier_detection_column')
 
-            detection_method = st.selectbox('Select Outlier Detection Method', options=['Z-Score', 'IQR'],
-                                            key='outlier_detection_method',
-                                            help='Choose the method for outlier detection. [Z-Score Documentation](https://www.analyticsvidhya.com/blog/2022/08/dealing-with-outliers-using-the-z-score-method/) [IQR Documentation](https://www.analyticsvidhya.com/blog/2022/09/dealing-with-outliers-using-the-iqr-method/)')
+        detection_method = st.selectbox('Select Outlier Detection Method', options=['Z-Score', 'IQR'],
+                                        key='outlier_detection_method',
+                                        help='Choose the method for outlier detection. [Z-Score Documentation](https://www.analyticsvidhya.com/blog/2022/08/dealing-with-outliers-using-the-z-score-method/) [IQR Documentation](https://www.analyticsvidhya.com/blog/2022/09/dealing-with-outliers-using-the-iqr-method/)')
 
-            if st.button('Detect Outliers', key='outlier_detection_button'):
-                if detection_method == 'Z-Score':
-                    outliers = detect_outliers_zscore(st.session_state.temp_data, column)
-                elif detection_method == 'IQR':
-                    outliers = detect_outliers_iqr(st.session_state.temp_data, column)
+        if st.button('Detect Outliers', key='outlier_detection_button'):
+            if detection_method == 'Z-Score':
+                outliers = detect_outliers_zscore(st.session_state.temp_data, column)
+            elif detection_method == 'IQR':
+                outliers = detect_outliers_iqr(st.session_state.temp_data, column)
 
-                if not outliers.empty:
-                    st.subheader(f"Outliers Detected in Column '{column}'")
-                    st.dataframe(outliers)
+            if not outliers.empty:
+                st.subheader(f"Outliers Detected in Column '{column}'")
+                st.dataframe(outliers)
 
-                    # Visualization
-                    fig = px.box(st.session_state.temp_data, y=column, title=f'Box Plot of {column}')
-                    st.plotly_chart(fig)
+                # Visualization
+                fig = px.box(st.session_state.temp_data, y=column, title=f'Box Plot of {column}')
+                st.plotly_chart(fig)
 
-                    # Recommendations
-                    st.write("💡 Recommendations for Handling Outliers:")
-                    st.write("1. **Remove Outliers**: If outliers are due to data entry errors, consider removing them.")
-                    st.write("2. **Transform Data**: Apply transformations such as logarithmic scaling to reduce the impact of outliers.")
-                    st.write("3. **Cap or Floor Values**: Set upper and lower bounds to cap or floor extreme values.")
+                # Recommendations
+                st.write("💡 Recommendations for Handling Outliers:")
+                st.write("1. **Remove Outliers**: If outliers are due to data entry errors, consider removing them.")
+                st.write("2. **Transform Data**: Apply transformations such as logarithmic scaling to reduce the impact of outliers.")
+                st.write("3. **Cap or Floor Values**: Set upper and lower bounds to cap or floor extreme values.")
 
-                    # Note and Documentation Links
-                    st.write("🔧 We are working on bringing you a dynamic outlier remover. Stay tuned!")
-                    st.write("[Learn more about Z-Score](https://www.analyticsvidhya.com/blog/2022/08/dealing-with-outliers-using-the-z-score-method/) and [IQR](https://www.analyticsvidhya.com/blog/2022/09/dealing-with-outliers-using-the-iqr-method/) methods")
+                # Note and Documentation Links
+                st.write("🔧 We are working on bringing you a dynamic outlier remover. Stay tuned!")
+                st.write("[Learn more about Z-Score](https://www.analyticsvidhya.com/blog/2022/08/dealing-with-outliers-using-the-z-score-method/) and [IQR](https://www.analyticsvidhya.com/blog/2022/09/dealing-with-outliers-using-the-iqr-method/) methods")
 
-                else:
-                    st.write("No outliers detected.")
+            else:
+                st.write("No outliers detected.")
 
 detect_and_display_outliers()
+
 
 
 
