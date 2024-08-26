@@ -102,24 +102,23 @@ with tab5:
         st.dataframe(stats_df)
 
    
-
-    st.subheader(':rainbow[Handle Missing Values]', divider='rainbow')
+st.subheader(':rainbow[Handle Missing Values]', divider='rainbow')
 
     # Create a temporary DataFrame to store the modified data
-    if 'temp_data' not in st.session_state:
+if 'temp_data' not in st.session_state:
         st.session_state.temp_data = data.copy()
 
     # Calculate missing values
-    def calculate_missing_values(df):
+def calculate_missing_values(df):
         missing_data = df.isnull().sum().reset_index()
         missing_data.columns = ['Column', 'Missing Values']
         return missing_data[missing_data['Missing Values'] > 0]
 
-    missing_data = calculate_missing_values(st.session_state.temp_data)
+missing_data = calculate_missing_values(st.session_state.temp_data)
 
-    if missing_data.empty:
+if missing_data.empty:
         st.write("No missing values found in the dataset.")
-    else:
+else:
         st.write("Missing values detected in the following columns:")
         st.dataframe(missing_data)
 
@@ -193,19 +192,19 @@ with tab5:
                         )
 
     # Outlier Detection Section
-    st.subheader(':rainbow[Outlier Detection]', divider='rainbow')
+st.subheader(':rainbow[Outlier Detection]', divider='rainbow')
 
-    def detect_outliers_zscore(df, column):
+def detect_outliers_zscore(df, column):
         z_scores = np.abs(stats.zscore(df[column].dropna()))
         return df[z_scores > 3]
 
-    def detect_outliers_iqr(df, column):
+def detect_outliers_iqr(df, column):
         Q1 = df[column].quantile(0.25)
         Q3 = df[column].quantile(0.75)
         IQR = Q3 - Q1
         return df[(df[column] < (Q1 - 1.5 * IQR)) | (df[column] > (Q3 + 1.5 * IQR))]
 
-    def detect_and_display_outliers():
+def detect_and_display_outliers():
         numeric_columns = st.session_state.temp_data.select_dtypes(include=['float64', 'int64']).columns
         if numeric_columns.empty:
             st.write("No numeric columns available for outlier detection.")
@@ -243,7 +242,7 @@ with tab5:
                 else:
                     st.write("No outliers detected.")
 
-    detect_and_display_outliers()
+detect_and_display_outliers()
 
 
 
