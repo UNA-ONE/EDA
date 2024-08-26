@@ -27,85 +27,70 @@ st.write("""
 st.title(':rainbow[Your GoTo EDA Portal]')
 st.subheader(':gray[Explore Data with ease.]', divider='rainbow')
 
-# Define a default dataset (example data)
-DEFAULT_DATA = pd.DataFrame({
-    'Category': ['A', 'B', 'A', 'C', 'B', 'A', 'C'],
-    'Value': [10, 20, 10, 30, 20, 10, 30]
-})
 
-# Function to load data
-def load_data(file):
-    if file is not None:
-        if file.name.endswith('csv'):
-            return pd.read_csv(file)
-        else:
-            return pd.read_excel(file)
-    return None
 
-# Create a placeholder for the uploaded data
 file = st.file_uploader('Drop csv or excel file', type=['csv', 'xlsx'])
-data = load_data(file)
-
-# Use default data if no file is uploaded
-if data is None:
-    data = DEFAULT_DATA
-    st.info('Showing default data. Upload your own data to replace this.')
-
-st.dataframe(data)
-
-# Rest of your code...
-
-st.subheader(':rainbow[Basic information of the dataset]', divider='rainbow')
-tab1, tab2, tab3, tab4, tab5 = st.tabs(['Summary', 'Top and Bottom Rows', 'Data Types', 'Columns', 'Descriptive Statistics'])
-
-with tab1:
-    st.write(f'There are {data.shape[0]} rows in dataset and  {data.shape[1]} columns in the dataset')
-    st.subheader(':gray[Statistical summary of the dataset]')
-    st.dataframe(data.describe())
-with tab2:
-    st.subheader(':gray[Top Rows]')
-    toprows = st.slider('Number of rows you want', 1, data.shape[0], key='topslider')
-    st.dataframe(data.head(toprows))
-    st.subheader(':gray[Bottom Rows]')
-    bottomrows = st.slider('Number of rows you want', 1, data.shape[0], key='bottomslider')
-    st.dataframe(data.tail(bottomrows))
-with tab3:
-    st.subheader(':grey[Data types of column]')
-    st.dataframe(data.dtypes)
-with tab4:
-    st.subheader('Column Names in Dataset')
-    st.write(list(data.columns))
-with tab5:
-    st.subheader(':gray[Descriptive Statistics]')
-    
-    # Function to calculate descriptive statistics
-    def descriptive_statistics(df):
-        stats_df = pd.DataFrame()
-        stats_df['mean'] = df.mean()
-        stats_df['std_dev'] = df.std()
-        stats_df['min'] = df.min()
-        stats_df['25%'] = df.quantile(0.25)
-        stats_df['median'] = df.median()
-        stats_df['75%'] = df.quantile(0.75)
-        stats_df['max'] = df.max()
-        stats_df['variance'] = df.var()
-        stats_df['skewness'] = df.skew()
-        stats_df['kurtosis'] = df.kurtosis()
-        return stats_df
-
-    # Calculate descriptive statistics for numeric columns
-    numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
-    if numeric_columns.empty:
-        st.write("No numeric columns available for descriptive statistics.")
+if file:
+    if file.name.endswith('csv'):
+        data = pd.read_csv(file)
     else:
-        stats_df = descriptive_statistics(data[numeric_columns])
-        st.dataframe(stats_df)
+        data = pd.read_excel(file)
+    st.dataframe(data)
+    st.info('We are ready to work on your data', icon='⚒️')
 
-   
+    st.subheader(':rainbow[Basic information of the dataset]', divider='rainbow')
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(['Summary', 'Top and Bottom Rows', 'Data Types', 'Columns', 'Descriptive Statistics'])
+
+    with tab1:
+        st.write(f'There are {data.shape[0]} rows in dataset and  {data.shape[1]} columns in the dataset')
+        st.subheader(':gray[Statistical summary of the dataset]')
+        st.dataframe(data.describe())
+    with tab2:
+        st.subheader(':gray[Top Rows]')
+        toprows = st.slider('Number of rows you want', 1, data.shape[0], key='topslider')
+        st.dataframe(data.head(toprows))
+        st.subheader(':gray[Bottom Rows]')
+        bottomrows = st.slider('Number of rows you want', 1, data.shape[0], key='bottomslider')
+        st.dataframe(data.tail(bottomrows))
+    with tab3:
+        st.subheader(':grey[Data types of column]')
+        st.dataframe(data.dtypes)
+    with tab4:
+        st.subheader('Column Names in Dataset')
+        st.write(list(data.columns))
+    with tab5:
+        st.subheader(':gray[Descriptive Statistics]')
+        
+        # Function to calculate descriptive statistics
+        def descriptive_statistics(df):
+            stats_df = pd.DataFrame()
+            stats_df['mean'] = df.mean()
+            stats_df['std_dev'] = df.std()
+            stats_df['min'] = df.min()
+            stats_df['25%'] = df.quantile(0.25)
+            stats_df['median'] = df.median()
+            stats_df['75%'] = df.quantile(0.75)
+            stats_df['max'] = df.max()
+            stats_df['variance'] = df.var()
+            stats_df['skewness'] = df.skew()
+            stats_df['kurtosis'] = df.kurtosis()
+            return stats_df
+
+        # Calculate descriptive statistics for numeric columns
+        numeric_columns = data.select_dtypes(include=['float64', 'int64']).columns
+        if numeric_columns.empty:
+            st.write("No numeric columns available for descriptive statistics.")
+        else:
+            stats_df = descriptive_statistics(data[numeric_columns])
+            st.dataframe(stats_df)
+
+# Sample data for demonstration
+# data = pd.read_csv('your_data.csv')
+
 st.subheader(':rainbow[Handle Missing Values]', divider='rainbow')
 
-# Initialize temp_data in session state if not already present
-if 'temp_data' not in st.session_state or file:
+# Create a temporary DataFrame to store the modified data
+if 'temp_data' not in st.session_state:
     st.session_state.temp_data = data.copy()
 
 # Calculate missing values
@@ -128,7 +113,7 @@ else:
             recommendations.append(f"💡 The column '{column}' contains numerical data. Imputing with the mean might be the best option.")
         elif st.session_state.temp_data[column].dtype == 'object':
             recommendations.append(f"💡 The column '{column}' contains categorical data. Imputing with the most frequent value might be the best option.")
-
+    
     for recommendation in recommendations:
         st.write(recommendation)
 
@@ -136,21 +121,20 @@ else:
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            column = st.selectbox('Select Column', options=missing_data['Column'], key='impute_column', help='Select the column to impute missing values for.')
+            column = st.selectbox('Select Column', options=missing_data['Column'], help='Select the column to impute missing values for.')
 
         with col2:
             method = st.selectbox('Select Imputation Method',
                                   options=['Mean', 'Median', 'Most Frequent', 'Constant'],
-                                  key='impute_method',
                                   help='Choose the method to impute missing values.')
 
         with col3:
             if method == 'Constant':
-                fill_value = st.text_input('Value for Constant Imputation', key='constant_value', help='Specify the constant value for imputation.')
+                fill_value = st.text_input('Value for Constant Imputation', help='Specify the constant value for imputation.')
             else:
                 fill_value = None
 
-        impute = st.button('Impute', key='impute_button')
+        impute = st.button('Impute')
 
         if impute:
             imputer = None
@@ -166,7 +150,7 @@ else:
             if imputer:
                 st.session_state.temp_data[[column]] = imputer.fit_transform(st.session_state.temp_data[[column]])
                 st.success(f'Missing values in column "{column}" have been imputed using the {method} method.')
-
+                
                 # Show top 7 rows where data was imputed
                 st.subheader("Top 7 Rows After Imputation")
                 imputed_data = st.session_state.temp_data.head(7)
@@ -174,7 +158,7 @@ else:
 
                 # Recalculate missing values after imputation
                 missing_data = calculate_missing_values(st.session_state.temp_data)
-
+                
                 if missing_data.empty:
                     st.write("All missing values have been imputed.")
                 else:
@@ -192,14 +176,18 @@ else:
                     )
 
 
-    # Outlier Detection Section
+
 st.subheader(':rainbow[Outlier Detection]', divider='rainbow')
 
 def detect_outliers_zscore(df, column):
-    z_scores = np.abs(stats.zscore(df[column].dropna()))
+    df = df.copy()  # Avoid modifying the original DataFrame
+    df = df.dropna(subset=[column])  # Drop NaN values in the specified column
+    z_scores = np.abs(stats.zscore(df[column]))
     return df[z_scores > 3]
 
 def detect_outliers_iqr(df, column):
+    df = df.copy()  # Avoid modifying the original DataFrame
+    df = df.dropna(subset=[column])  # Drop NaN values in the specified column
     Q1 = df[column].quantile(0.25)
     Q3 = df[column].quantile(0.75)
     IQR = Q3 - Q1
@@ -247,7 +235,6 @@ detect_and_display_outliers()
 
 
 
-
 st.subheader(':green[Analytics Section]', divider='green')
 
 # Display an image
@@ -281,10 +268,6 @@ with st.expander('Value Count'):
         
         fig = px.pie(data_frame=result, names=column, values='count')
         st.plotly_chart(fig)
-
-
-
-
 
 
 
@@ -337,12 +320,3 @@ with st.expander('Group By your columns'):
             path = st.multiselect('Choose your Path', options=list(result.columns))
             fig = px.sunburst(data_frame=result, path=path, values='newcol')
             st.plotly_chart(fig)
-
-
-
-
-
-
-
-
-
